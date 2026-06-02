@@ -8,96 +8,112 @@ Output: data/processed/panel_clean.parquet
 
 Variable construction
 ---------------------
-ROA            = ib / at           (return on assets; performance)
-DOI            = pifo / sale       (foreign income share; degree of internationalization)
-DOI²           = doi ** 2          (non-linearity test, H1)
-R&D intensity  = xrd / at          (R&D expenditure / total assets; 0 if missing)
-DOI × R&D      = doi * rd_intensity (moderation term, H2)
-Firm size      = log(at)
-Leverage       = dltt / at
-Age            = fyear - inco
-
-All continuous outcome variables are winsorized at 1%–99%.
+ROA                = nicon / at
+Capital intensity  = capx / at
+Firm size          = log(at)
+Leverage           = (dltt + dlc) / at
+Cash holdings      = che / at
+Tangibility        = ppent / at
 """
 
 import numpy as np
 import pandas as pd
 from pathlib import Path
 
-# ── Paths — always relative ────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
 RAW_PATH = Path("data/raw/compustat_global_raw.parquet")
 OUT_PATH = Path("data/processed/panel_clean.parquet")
+LOG_PATH = Path("data/processed/clean_log.txt")
+
 OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 print("Loading raw data...")
 df = pd.read_parquet(RAW_PATH)
 n_raw = len(df)
-print(f"  Raw observations: {n_raw:,} | firms: {df['gvkey'].nunique():,}")
 
+print(f"  Raw observations: {n_raw:,}")
+print(f"  Raw firms: {df['gvkey'].nunique():,}")
+
+# ── Basic cleaning ────────────────────────────────────────────────────────────
+df = df.drop_duplicates()
+df = df.dropna(subset=["gvkey", "fyear", "at"]).copy()
+
+# Total assets must be positive for ratios
+df = df[df["at"] > 0].copy()
 
 # ── SME Filter ────────────────────────────────────────────────────────────────
-# EU definition: < 250 employees OR total assets ≤ €43m
-# emp in Compustat is in thousands → 0.25 = 250 employees
+# EU definition approximation:
+# emp < 0.25 means fewer than 250 employees, because emp is in thousands.
+# at <= 43 means total assets up to 43 million.
 sme_mask = (df["emp"] < 0.25) | (df["at"] <= 43)
 df = df[sme_mask].copy()
-print(f"  After SME filter: {len(df):,} (removed {n_raw - len(df):,})")
 
+print(f"  After SME filter: {len(df):,} observations")
 
-# ── Construct Variables ───────────────────────────────────────────────────────
-# Performance
-df["roa"] = df["ib"] / df["at"]
-
-# Degree of internationalization (DOI)
-# pifo can be negative (foreign losses) — we winsorize below
-df["doi"] = df["pifo"] / df["sale"]
-df["doi_sq"] = df["doi"] ** 2
-
-# R&D intensity — treat missing xrd as zero (firm did not report R&D expenditure)
-df["rd_intensity"] = df["xrd"].fillna(0) / df["at"]
-
-# Interaction term for H2
-df["doi_x_rd"] = df["doi"] * df["rd_intensity"]
-
-# Controls
-df["ln_at"] = np.log(df["at"])
-df["leverage"] = df["dltt"] / df["at"]
-df["age"] = (df["fyear"] - df["inco"].fillna(df["fyear"] - 10)).clip(lower=0)
-
+# ── Construct variables ───────────────────────────────────────────────────────
+df["roa"] = df["nicon"] / df["at"]
+df["capital_intensity"] = df["capx"] / df["at"]
+df["firm_size"] = np.log(df["at"])
+df["leverage"] = (df["dltt"].fillna(0) + df["dlc"].fillna(0)) / df["at"]
+df["cash_holdings"] = df["che"] / df["at"]
+df["tangibility"] = df["ppent"] / df["at"]
 
 # ── Winsorize at 1%–99% ───────────────────────────────────────────────────────
 def winsorize(series: pd.Series, lower: float = 0.01, upper: float = 0.99) -> pd.Series:
-    """Clip series at given quantiles."""
     lo = series.quantile(lower)
     hi = series.quantile(upper)
     return series.clip(lo, hi)
 
-
-for col in ["roa", "doi", "rd_intensity", "leverage"]:
+for col in [
+    "roa",
+    "capital_intensity",
+    "firm_size",
+    "leverage",
+    "cash_holdings",
+    "tangibility",
+]:
     df[col] = winsorize(df[col])
 
-# Recompute derived variables after winsorizing inputs
-df["doi_sq"] = df["doi"] ** 2
-df["doi_x_rd"] = df["doi"] * df["rd_intensity"]
+# ── Drop observations with missing core variables ─────────────────────────────
+core_vars = [
+    "roa",
+    "capital_intensity",
+    "firm_size",
+    "leverage",
+    "cash_holdings",
+    "tangibility",
+]
 
-
-# ── Drop Observations with Missing Core Variables ─────────────────────────────
-core_vars = ["roa", "doi", "doi_sq", "rd_intensity", "doi_x_rd", "ln_at", "leverage", "age"]
 n_before = len(df)
 df = df.dropna(subset=core_vars).copy()
-print(f"  After dropping missing core vars: {len(df):,} (removed {n_before - len(df):,})")
 
+print(f"  After dropping missing core vars: {len(df):,} observations")
+print(f"  Removed because of missing core vars: {n_before - len(df):,}")
 
-# ── Require ≥ 3 Observations per Firm (balanced panel assumption) ─────────────
+# ── Require at least 3 observations per firm ──────────────────────────────────
 obs_per_firm = df.groupby("gvkey")["fyear"].count()
 valid_firms = obs_per_firm[obs_per_firm >= 3].index
+
 n_before = len(df)
 df = df[df["gvkey"].isin(valid_firms)].copy()
-print(f"  After min-obs filter (≥3 per firm): {len(df):,} (removed {n_before - len(df):,})")
-print(f"  Final: {len(df):,} obs | {df['gvkey'].nunique():,} firms | {df['loc'].nunique()} countries")
-print(f"  Years: {df['fyear'].min()}–{df['fyear'].max()}")
 
+print(f"  After min-obs filter: {len(df):,} observations")
+print(f"  Final firms: {df['gvkey'].nunique():,}")
+print(f"  Countries: {df['loc'].nunique()}")
+print(f"  Years: {df['fyear'].min()}–{df['fyear'].max()}")
 
 # ── Save ──────────────────────────────────────────────────────────────────────
 df.to_parquet(OUT_PATH, index=False)
+
+LOG_PATH.write_text(
+    f"Clean log\n"
+    f"Raw observations: {n_raw}\n"
+    f"Clean observations: {len(df)}\n"
+    f"Firms: {df['gvkey'].nunique()}\n"
+    f"Countries: {df['loc'].nunique()}\n"
+    f"Years: {df['fyear'].min()}–{df['fyear'].max()}\n"
+)
+
 print(f"\nSaved cleaned panel to {OUT_PATH}")
+print(f"Saved clean log to {LOG_PATH}")

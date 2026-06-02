@@ -1,42 +1,68 @@
-# board-gender-diversity-firm-performance
+# capital intensity
 
 Name: Lara Wild
 
 ## Research Question
 
-How does board gender diversity affect firm performance?
+How does capital intensity affect firm profitability?
 
 ## Hypotheses
 
-- H1: Firms with higher board gender diversity exhibit higher firm performance.
+- H1: Higher capital intensity is positively associated with firm profitability.
 
-## Theoretical Background
+## Theoretical Background 
 
-The hypothesis is derived from resource dependence theory and agency theory. From a resource dependence perspective, boards provide firms with valuable resources such as knowledge, advice, external networks, and legitimacy; therefore, gender-diverse boards may broaden the range of perspectives and resources available for strategic decision-making (Hillman & Dalziel, 2003). From an agency theory perspective, boards monitor management on behalf of shareholders; gender-diverse boards may strengthen monitoring quality and governance processes, for example through higher monitoring effort and committee participation by female directors (Adams & Ferreira, 2009). Prior empirical research suggests that board diversity can be positively associated with firm value, including Tobin’s Q (Carter, Simkins, & Simpson, 2003). However, the empirical evidence is not fully uniform: meta-analytic evidence shows mixed results across studies and contexts, although female board representation is often positively related to accounting-based performance measures (Post & Byron, 2015).
+Capital intensity describes how strongly a firm invests in fixed assets and production capacity. In this study, capital intensity is measured as CAPX / AT, meaning capital expenditures divided by total assets.
+Higher capital intensity can improve profitability because investments in machinery, equipment, and technology may increase efficiency and productivity. However, it can also reduce profitability, since capital-intensive firms often face higher fixed costs, depreciation, and lower flexibility.
+This relationship can be explained through the Resource-Based View, which argues that firm resources can create competitive advantages when they are valuable and difficult to imitate. Therefore, this study examines whether capital intensity is significantly related to firm profitability.
 
-Hillman, A. J., & Dalziel, T. (2003). Boards of directors and firm performance: Integrating agency and resource dependence perspectives. Academy of Management Review, 28(3), 383–396.
-Adams, R. B., & Ferreira, D. (2009). Women in the boardroom and their impact on governance and performance. Journal of Financial Economics, 94(2), 291–309.
-Carter, D. A., Simkins, B. J., & Simpson, W. G. (2003). Corporate governance, board diversity, and firm value. Financial Review, 38(1), 33–53.
-Post, C., & Byron, K. (2015). Women on boards and firm financial performance: A meta-analysis. Academy of Management Journal, 58(5), 1546–1571.
+Hypothesis
+H1: Capital intensity is significantly associated with firm profitability.
 
-## Independent Variable: Board Gender Diversity
+Sources
+Barney, J. B. (1991). Firm resources and sustained competitive advantage. Journal of Management, 17(1), 99–120.
+McConnell, J. J., & Muscarella, C. J. (1985). Corporate capital expenditure decisions and the market value of the firm. Journal of Financial Economics, 14(3), 399–422.
+Lee, S. (2010). Effects of capital intensity on firm performance: The U.S. restaurant industry. Journal of Hospitality Financial Management, 18(1), 1–13.
 
-The independent variable is board gender diversity, measured as the share of female directors on the board.
-Formula:
-Board Gender Diversity = Number of Female Directors / Total Number of Directors
-The variable will be constructed using BoardEx North America. Two BoardEx datasets are required:
+## Variables
 
-| Dataset | Required variables | Purpose |
-|---|---|---|
-| Organizational Composition | `companyID`, `directorID`, `companyname`, `rolename`, `datestartrole`, `dateendrole`, `seniority` | Identifies which individuals served in which firm and role |
-| Individual Profile Details | `directorID`, `gender` | Adds gender information for each individual |
+### Dependent variable (Y)
 
-The two datasets are merged using ticker directorID.
+| Construct | Data Item(s) | Formula |
+|-----------|--------------|---------|
+| Return on Assets (ROA) | NICON, AT | NICON / AT |
 
-## Dependent Variable
+### Independent variable (X)
 
-The main dependent variable is operating firm performance, measured by EBIT scaled by total assets. EBIT is used because it captures a firm’s operating profitability before interest and taxes and is therefore less affected by differences in capital structure and tax environments. To make EBIT comparable across firms of different sizes, EBIT is scaled by total assets.
-According to the Compustat variable document, EBIT is available as the Compustat data item EBIT, while total assets are measured by AT. Therefore, the main performance variable is calculated as:
-Operating Performance = EBIT / AT
+| Construct | Data Item(s) | Formula |
+|-----------|--------------|---------|
+| Capital Intensity | CAPX, AT | CAPX / AT |
+
+### Controls
+
+| Construct | Data Item(s) | Formula |
+|-----------|--------------|---------|
+| Firm size | AT | log(AT) |
+| Leverage | DLTT, DLC, AT | (DLTT + DLC) / AT |
+| Cash holdings | CHE, AT | CHE / AT |
+| Tangibility | PPENT, AT | PPENT / AT |
+| Industry | SIC or NAICS | categorical |
+| Year | FYEAR | categorical |
+| Country | LOC or FIC | categorical |
+
+## Data
+
+| Item | Detail |
+|------|--------|
+| Source | WRDS / Compustat Global |
+| Table | comp_global_daily.g_funda |
+| Downloaded | 2026-06-02 |
+| License | WRDS subscriber agreement |
+| Fiscal years | 2015–2024 |
+| Raw rows | 54,931 |
+| Clean rows | 14,952 |
+| Firms after cleaning | 2,451 |
+| Countries | 23 |
+
 
 

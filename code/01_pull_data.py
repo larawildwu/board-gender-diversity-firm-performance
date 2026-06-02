@@ -41,26 +41,29 @@ EUROPEAN_COUNTRIES = (
 # ── WRDS query ────────────────────────────────────────────────────────────────
 QUERY = f"""
     SELECT
-        gvkey,          -- firm identifier
-        conm,           -- company name
-        fyear,          -- fiscal year
-        loc,            -- country of incorporation (ISO 3)
-        sic,            -- industry code
-        at,             -- total assets
-        sale,           -- net sales
-        ib,             -- income before extraordinary items (net income proxy)
-        pifo,           -- pre-tax income, foreign operations
-        xrd,            -- R&D expenditure
-        dltt,           -- long-term debt total
-        emp,            -- employees (thousands)
-        inco            -- year of incorporation
-    FROM
-        comp_global_daily.g_funda
+    gvkey,          -- firm identifier
+    conm,           -- company name
+    fyear,          -- fiscal year
+    loc,            -- country code
+    sich,           -- industry code
+    at,             -- total assets
+    sale,           -- net sales
+    ib,             -- income before extraordinary items
+    nicon,          -- net income consolidated
+    capx,           -- capital expenditures
+    dltt,           -- long-term debt
+    dlc,            -- debt in current liabilities
+    che,            -- cash and short-term investments
+    ppent,          -- property, plant and equipment
+    emp             -- employees
+FROM
+    comp_global_daily.g_funda
+    
     WHERE
         loc IN ({EUROPEAN_COUNTRIES})
-        AND fyear BETWEEN 2005 AND 2020
+        AND fyear BETWEEN 2015 AND 2024
         AND indfmt = 'INDL'
-        AND datafmt = 'STD'
+        AND datafmt = 'HIST_STD'
         AND popsrc = 'I'
         AND consol = 'C'
         AND at > 0

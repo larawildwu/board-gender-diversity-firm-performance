@@ -1,2 +1,6 @@
 .DS_Store
 .env
+data/raw/
+data/processed/
+*.parquet
+.ipynb_checkpoints/
